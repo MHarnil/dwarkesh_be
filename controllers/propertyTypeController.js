@@ -1,4 +1,4 @@
-const PropertyType = require('../models/PropertyType');
+const PropertyType = require('../models/propertyType');
 
 // Create
 exports.createPropertyType = async (req, res) => {
