@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const propertySchema = new mongoose.Schema({
     title: String,
     subtitle: String,
+    propertyType: { type: mongoose.Schema.Types.ObjectId, ref: 'PropertyType' },
     address: String,
     contactNumber: String,
     propertyDetail: {

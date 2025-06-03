@@ -6,6 +6,7 @@ exports.createProperty = async (req, res) => {
         const {
             title,
             subtitle,
+            propertyType,
             address,
             contactNumber,
             propertyDetail,
@@ -35,6 +36,7 @@ exports.createProperty = async (req, res) => {
         const property = await Property.create({
             title,
             subtitle,
+            propertyType,
             address,
             contactNumber,
             propertyDetail: JSON.parse(propertyDetail),
@@ -49,12 +51,13 @@ exports.createProperty = async (req, res) => {
 };
 
 exports.getAllProperties = async (req, res) => {
-    const properties = await Property.find();
+    const properties = await Property.find().populate('propertyType');
     res.json(properties);
 };
 
+
 exports.getPropertyById = async (req, res) => {
-    const property = await Property.findById(req.params.id);
+    const property = await Property.findById(req.params.id).populate('propertyType');
     if (!property) return res.status(404).json({ message: 'Not found' });
     res.json(property);
 };
@@ -64,6 +67,7 @@ exports.updateProperty = async (req, res) => {
         const {
             title,
             subtitle,
+            propertyType,
             address,
             contactNumber,
             propertyDetail,
@@ -92,6 +96,7 @@ exports.updateProperty = async (req, res) => {
             {
                 title,
                 subtitle,
+                propertyType,
                 address,
                 contactNumber,
                 propertyDetail: JSON.parse(propertyDetail),
