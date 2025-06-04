@@ -13,7 +13,7 @@ const propertySchema = new mongoose.Schema({
     },
     floorPlan: [{
         title: String,
-        images: String
+        image: String
     }],
     projectGallery: [String]
 }, { timestamps: true });
