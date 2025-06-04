@@ -13,26 +13,22 @@ exports.createProperty = async (req, res) => {
             floorPlanTitles
         } = req.body;
 
-        // Upload floor plan images
         const floorPlan = await Promise.all(
             JSON.parse(floorPlanTitles).map(async (item, i) => {
-                const uploadedImages = req.files[`floorPlan_${i}`]
-                    ? await Promise.all(req.files[`floorPlan_${i}`].map(file => uploadFile(file.path)))
-                    : [];
+                const file = req.files[`floorPlan_${i}`]?.[0];
+                const uploadedImage = file ? await uploadFile(file.path) : null;
 
                 return {
                     title: item.title,
-                    images: uploadedImages
+                    image: uploadedImage
                 };
             })
         );
 
-        // Upload project gallery images
         const projectGallery = req.files.projectGallery
             ? await Promise.all(req.files.projectGallery.map(file => uploadFile(file.path)))
             : [];
 
-        // Create new property in DB
         const property = await Property.create({
             title,
             subtitle,
@@ -55,7 +51,6 @@ exports.getAllProperties = async (req, res) => {
     res.json(properties);
 };
 
-
 exports.getPropertyById = async (req, res) => {
     const property = await Property.findById(req.params.id).populate('propertyType');
     if (!property) return res.status(404).json({ message: 'Not found' });
@@ -76,13 +71,12 @@ exports.updateProperty = async (req, res) => {
 
         const floorPlan = await Promise.all(
             JSON.parse(floorPlanTitles).map(async (item, i) => {
-                const uploadedImages = req.files[`floorPlan_${i}`]
-                    ? await Promise.all(req.files[`floorPlan_${i}`].map(file => uploadFile(file.path)))
-                    : [];
+                const file = req.files[`floorPlan_${i}`]?.[0];
+                const uploadedImage = file ? await uploadFile(file.path) : null;
 
                 return {
                     title: item.title,
-                    images: uploadedImages
+                    image: uploadedImage
                 };
             })
         );
