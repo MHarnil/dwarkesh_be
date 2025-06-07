@@ -69,21 +69,42 @@ exports.updateProperty = async (req, res) => {
             floorPlanTitles
         } = req.body;
 
+        // Get existing property to preserve current images
+        const existingProperty = await Property.findById(req.params.id);
+        if (!existingProperty) {
+            return res.status(404).json({ message: 'Property not found' });
+        }
+
+        // Handle floorPlan updates - preserve existing images and append new ones
         const floorPlan = await Promise.all(
             JSON.parse(floorPlanTitles).map(async (item, i) => {
                 const file = req.files[`floorPlan_${i}`]?.[0];
-                const uploadedImage = file ? await uploadFile(file.path) : null;
+                const newImage = file ? await uploadFile(file.path) : null;
+
+                // Get existing images for this floor plan index
+                const existingImages = existingProperty.floorPlan[i]?.image || [];
+
+                // Combine existing images with new image (if any)
+                const updatedImages = newImage
+                    ? [...existingImages, newImage]
+                    : existingImages;
 
                 return {
                     title: item.title,
-                    image: uploadedImage
+                    image: updatedImages
                 };
             })
         );
 
-        const projectGallery = req.files.projectGallery
-            ? await Promise.all(req.files.projectGallery.map(file => uploadFile(file.path)))
-            : [];
+        // Handle projectGallery updates - preserve existing images and append new ones
+        let updatedProjectGallery = [...(existingProperty.projectGallery || [])];
+
+        if (req.files.projectGallery) {
+            const newGalleryImages = await Promise.all(
+                req.files.projectGallery.map(file => uploadFile(file.path))
+            );
+            updatedProjectGallery = [...updatedProjectGallery, ...newGalleryImages];
+        }
 
         const updated = await Property.findByIdAndUpdate(
             req.params.id,
@@ -95,7 +116,7 @@ exports.updateProperty = async (req, res) => {
                 contactNumber,
                 propertyDetail: JSON.parse(propertyDetail),
                 floorPlan,
-                projectGallery
+                projectGallery: updatedProjectGallery
             },
             { new: true }
         );
@@ -106,7 +127,54 @@ exports.updateProperty = async (req, res) => {
     }
 };
 
-exports.deleteProperty = async (req, res) => {
-    await Property.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Deleted successfully' });
+// Delete specific floor plan image
+exports.deleteFloorPlanImage = async (req, res) => {
+    try {
+        const { propertyId, floorPlanIndex, imageIndex } = req.params;
+
+        const property = await Property.findById(propertyId);
+        if (!property) {
+            return res.status(404).json({ message: 'Property not found' });
+        }
+
+        if (!property.floorPlan[floorPlanIndex]) {
+            return res.status(404).json({ message: 'Floor plan not found' });
+        }
+
+        if (!property.floorPlan[floorPlanIndex].image[imageIndex]) {
+            return res.status(404).json({ message: 'Image not found' });
+        }
+
+        // Remove the specific image
+        property.floorPlan[floorPlanIndex].image.splice(imageIndex, 1);
+
+        await property.save();
+        res.json({ message: 'Floor plan image deleted successfully', property });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Delete specific project gallery image
+exports.deleteProjectGalleryImage = async (req, res) => {
+    try {
+        const { propertyId, imageIndex } = req.params;
+
+        const property = await Property.findById(propertyId);
+        if (!property) {
+            return res.status(404).json({ message: 'Property not found' });
+        }
+
+        if (!property.projectGallery[imageIndex]) {
+            return res.status(404).json({ message: 'Gallery image not found' });
+        }
+
+        // Remove the specific image
+        property.projectGallery.splice(imageIndex, 1);
+
+        await property.save();
+        res.json({ message: 'Gallery image deleted successfully', property });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 };
