@@ -1,43 +1,33 @@
-const { v2: cloudinary } = require('cloudinary');
-const fs = require('fs');
-const multer = require('multer');
-const path = require('path');
-
-// Configure Cloudinary from environment variables
+import dotenv from 'dotenv';
+dotenv.config();
+import {v2 as cloudinary} from 'cloudinary';
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
-
-// Multer storage config to save files locally before upload
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        const dir = 'uploads/';
-        if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir);
-        }
-        cb(null, dir);
-    },
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + path.extname(file.originalname));
-    }
-});
-
-// Function to upload file to Cloudinary and delete local copy
-const uploadFile = async (filePath) => {
+const uploadFile = async (fileBuffer) => {
     try {
-        const result = await cloudinary.uploader.upload(filePath, {
-            folder: 'real_estate'
+        const fileSize = fileBuffer.length;
+        const maxFileSize = 10 * 1024 * 1024;
+        if (fileSize > maxFileSize) {
+            throw new Error("File size exceeds the maximum allowed limit.");
+        }
+        return new Promise((resolve, reject) => {
+            const uploadOptions = {
+                folder: "real_estate",
+            };
+            cloudinary.uploader.upload_stream(uploadOptions, (error, result) => {
+                if (error) {
+                    reject(error.message);
+                } else {
+                    resolve(result.secure_url);
+                }
+            }).end(fileBuffer);
         });
-
-        // Delete local file after successful upload
-        fs.unlinkSync(filePath);
-
-        return result.secure_url;
     } catch (error) {
-        throw new Error('Cloudinary Upload Failed: ' + error.message);
+        console.log(error.message);
+        throw new Error("Error uploading file..");
     }
 };
-
-module.exports = { uploadFile, storage };
+export {uploadFile};
