@@ -26,8 +26,7 @@ const uploadFile = async (fileBuffer) => {
             }).end(fileBuffer);
         });
     } catch (error) {
-        console.log(error.message);
-        throw new Error("Error uploading file..");
+        throw new Error("Error uploading file..",error.message);
     }
 };
 export {uploadFile};
